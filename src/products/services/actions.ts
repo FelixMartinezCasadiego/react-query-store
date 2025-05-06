@@ -5,6 +5,15 @@ interface GetProductsOptions {
   filterKey?: string;
 }
 
+interface ProductLike {
+  id?: number;
+  title: string;
+  price: number;
+  description: string;
+  category: string;
+  image: string;
+}
+
 const sleep = (seconds: number): Promise<boolean> => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -29,6 +38,16 @@ export const getProductById = async (id: number): Promise<Product> => {
   // await sleep(2);
 
   const { data } = await productsApi.get<Product>(`/products/${id}`);
+
+  return data;
+};
+
+export const createProduct = async (
+  product: ProductLike
+): Promise<ProductLike> => {
+  await sleep(2);
+
+  const { data } = await productsApi.post<ProductLike>(`/products`, product);
 
   return data;
 };
