@@ -1,23 +1,65 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { producActions, Product } from "..";
+import { producActions, type Product } from "..";
 
 export function useProductMutation() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: producActions.createProduct,
-    onSuccess: (data) => {
+    onMutate: (product) => {
+      console.log("Mutando - optimistic update");
+
+      // Optimistic Product
+      const optimisticProduct = { id: Math.random(), ...product };
+
+      // Save product in query client cache
+      queryClient.setQueryData<Product[]>(
+        ["products", { filterKey: product.category }],
+        (old) => {
+          if (!old) return [optimisticProduct];
+          return [...old, optimisticProduct];
+        }
+      );
+
+      return { optimisticProduct };
+    },
+    onSuccess: (product: Product, _variables, context) => {
       //   queryClient.invalidateQueries({
       //     queryKey: ["products", { filterKey: data.category }],
       //   });
+      queryClient.removeQueries({
+        queryKey: ["product", context?.optimisticProduct.id],
+      });
 
       queryClient.setQueryData<Product[]>(
-        ["products", { filterKey: data.category }],
+        ["products", { filterKey: product.category }],
         (old) => {
-          const productData = data as Product; // Ensure data is treated as Product
-          if (!old) return [productData];
+          if (!old) return [product];
 
-          return [...old, productData];
+          return old.map((cacheProduct) =>
+            cacheProduct.id === context?.optimisticProduct.id
+              ? product
+              : cacheProduct
+          );
+        }
+      );
+    },
+
+    onError: (error, variables, context) => {
+      console.log({ error, variables, context });
+
+      queryClient.removeQueries({
+        queryKey: ["product", context?.optimisticProduct.id],
+      });
+
+      queryClient.setQueryData<Product[]>(
+        ["products", { filterKey: variables.category }],
+        (old) => {
+          if (!old) return [];
+
+          return old.filter((cacheProduct) => {
+            return cacheProduct.id !== context?.optimisticProduct.id;
+          });
         }
       );
     },

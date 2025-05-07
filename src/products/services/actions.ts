@@ -42,12 +42,10 @@ export const getProductById = async (id: number): Promise<Product> => {
   return data;
 };
 
-export const createProduct = async (
-  product: ProductLike
-): Promise<ProductLike> => {
-  await sleep(2);
+export const createProduct = async (product: ProductLike) => {
+  await sleep(5);
 
-  const { data } = await productsApi.post<ProductLike>(`/products`, product);
+  const { data } = await productsApi.post<Product>(`/products`, product);
 
   return data;
 };
